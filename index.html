@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSB PROJECT — Передовые технологии OSINT-анализа</title>
+    <!-- Премиальные шрифты: Inter для интерфейса и JetBrains Mono для кода -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #030303;
+            --card-bg: rgba(10, 10, 12, 0.7);
+            --border-color: rgba(138, 43, 226, 0.15);
+            --accent-purple: #8a2be2;
+            --accent-glow: rgba(138, 43, 226, 0.3);
+            --text-main: #ffffff;
+            --text-muted: #7e7e8f;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        /* Мягкие, дорогие градиенты на фоне */
+        .bg-glow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(138, 43, 226, 0.05) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+            filter: blur(80px);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 100px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            justify-content: center;
+        }
+
+        /* =====================================================================
+           Заголовок с эффектом печати
+           ===================================================================== */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo-container {
+            display: inline-block;
+            position: relative;
+        }
+
+        .logo {
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--accent-purple);
+            text-shadow: 0 0 30px rgba(138, 43, 226, 0.3);
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            border-right: 3px solid var(--accent-purple); /* Каретка */
+            width: 0;
+            animation: 
+                typing 2s steps(11, end) forwards,
+                blink 0.75s step-end infinite;
+        }
+
+        .subtitle {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            margin-top: 16px;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Текст под заголовком */
+        .bot-tag {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: rgba(138, 43, 226, 0.8);
+            margin-top: 8px;
+            letter-spacing: 0.05em;
+        }
+
+        /* =====================================================================
+           macOS Терминал (Табличный вид кода)
+           ===================================================================== */
+        .mac-terminal {
+            background: rgba(5, 5, 5, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.9);
+            margin-bottom: 40px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            
+            /* Эффект плавного появления при скролле */
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            filter: blur(10px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), 
+                        transform 1s cubic-bezier(0.16, 1, 0.3, 1),
+                        filter 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Класс, который вешается скриптом при скролле */
+        .mac-terminal.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+
+        /* Шапка окна macOS */
+        .mac-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            position: relative;
+        }
+
+        .mac-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+
+        .mac-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        /* Тело терминала / Код */
+        .mac-body {
+            padding: 24px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .code-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .code-table tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .code-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .code-table td {
+            padding: 16px 8px;
+            vertical-align: top;
+        }
+
+        /* Подсветка синтаксиса */
+        .keyword { color: #c792ea; } /* фиолетовый */
+        .string { color: #c3e88d; }  /* зеленый */
+        .variable { color: #82b1ff; } /* голубой */
+
+        /* =====================================================================
+           Кнопки навигации
+           ===================================================================== */
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            width: 100%;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            color: var(--text-main);
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+
+        .nav-btn:hover {
+            border-color: rgba(138, 43, 226, 0.4);
+            background: rgba(138, 43, 226, 0.02);
+            transform: translateY(-4px);
+        }
+
+        .btn-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-btn .title {
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: -0.01em;
+        }
+
+        .nav-btn .desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .btn-arrow {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-muted);
+            stroke-width: 2;
+            fill: none;
+            transition: transform 0.3s ease, stroke 0.3s ease;
+        }
+
+        .nav-btn:hover .btn-arrow {
+            stroke: var(--accent-purple);
+            transform: translateX(4px);
+        }
+
+        /* =====================================================================
+           Анимации
+           ===================================================================== */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink {
+            from, to { border-color: transparent }
+            50% { border-color: var(--accent-purple); }
+        }
+
+        footer {
+            margin-top: 80px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.15);
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 60px 16px; }
+            .mac-body { padding: 14px; }
+            .code-table td {
+                display: block;
+                width: 100% !important;
+                padding: 8px 4px;
+            }
+            .code-table tr {
+                padding: 12px 0;
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <!-- Шапка -->
+        <header>
+            <div class="logo-container">
+                <h1 class="logo">OSB PROJECT</h1>
+            </div>
+            <!-- Обязательный текст сразу под заголовком -->
+            <div class="bot-tag">Osint system bot :3</div>
+            <p class="subtitle">Интеллектуальная агрегация и анализ открытых цифровых источников</p>
+        </header>
+
+        <!-- Табличка в стиле macOS терминала (Анимируется при скролле) -->
+        <main class="mac-terminal" id="terminal">
+            <div class="mac-header">
+                <div class="mac-dots">
+                    <div class="dot dot-red"></div>
+                    <div class="dot dot-yellow"></div>
+                    <div class="dot dot-green"></div>
+                </div>
+                <div class="mac-title">architecture.json</div>
+                <div></div>
+            </div>
+            <div class="mac-body">
+                <table class="code-table">
+                    <tr>
+                        <td><span class="keyword">"telephony"</span>:</td>
+                        <td><span class="string">"Высокоточная верификация, определение оператора и гео-принадлежности абонента."</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">"socials"</span>:</td>
+                        <td><span class="string">"Поиск, анализ и сопоставление связанных цифровых профилей и мессенджеров."</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">"dorking"</span>:</td>
+                        <td><span class="string">"Генерация сложных целевых запросов для сбора скрытых открытых данных."</span></td>
+                    </tr>
+                </table>
+            </div>
+        </main>
+
+        <!-- Навигация -->
+        <section class="links-grid">
+            <a href="https://t.me/OsintSystems_bot" class="nav-btn" target="_blank">
+                <div class="btn-content">
+                    <span class="title">Запустить платформу</span>
+                    <span class="desc">@OsintSystems_bot</span>
+                </div>
+                <svg class="btn-arrow" viewBox="0 0 24 24">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+
+            <a href="https://t.me/psulist" class="nav-btn" target="_blank">
+                <div class="btn-content">
+                    <span class="title">Информационный канал</span>
+                    <span class="desc">t.me/psulist</span>
+                </div>
+                <svg class="btn-arrow" viewBox="0 0 24 24">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+
+            <a href="https://t.me/ff_t_me" class="nav-btn" target="_blank">
+                <div class="btn-content">
+                    <span class="title">Разработчик</span>
+                    <span class="desc">@ff_t_me</span>
+                </div>
+                <svg class="btn-arrow" viewBox="0 0 24 24">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+        </section>
+
+        <footer>
+            &copy; OSB PROJECT. SECURE DATA INTELLIGENCE.
+        </footer>
+    </div>
+
+    <script>
+        // 1. Анимация появления macOS таблички при прокрутке страницы
+        const terminal = document.getElementById('terminal');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, {
+            threshold: 0.1 // Срабатывает, когда 10% таблички появляется во вьюпорте
+        });
+
+        observer.observe(terminal);
+
+        // 2. Движение фонового свечения за курсором
+        const glow = document.querySelector('.bg-glow');
+        document.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+        });
+    </script>
+</body>
+</html>
